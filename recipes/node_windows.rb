@@ -20,10 +20,10 @@
 # limitations under the License.
 #
 
-home_dir = node['jenkins']['node']['home']
+home = node['jenkins']['node']['home']
 server_url = node['jenkins']['server']['url']
 
-jenkins_exe = "#{home_dir}\\jenkins-slave.exe"
+jenkins_exe = ::File.join(home, "jenkins-slave.exe")
 service_name = "jenkinsslave"
 
 directory home do
@@ -32,7 +32,7 @@ end
 
 env "JENKINS_HOME" do
   action :create
-  value home_dir
+  value home
 end
 
 env "JENKINS_URL" do
@@ -40,15 +40,16 @@ env "JENKINS_URL" do
   value server_url
 end
 
-template "#{home}/jenkins-slave.xml" do
+template "jenkins-slave.xml" do
   source "jenkins-slave.xml.erb"
+  path ::File.join(home, "jenkins-slave.xml")
   variables(:jenkins_home => home,
             :jnlp_url => "#{server_url}/computer/#{node['jenkins']['node']['name']}/slave-agent.jnlp")
 end
 
 remote_file jenkins_exe do
   source "http://maven.dyndns.org/2/com/sun/winsw/winsw/1.8/winsw-1.8-bin.exe"
-  not_if { File.exists?(jenkins_exe) }
+  not_if { ::File.exists?(jenkins_exe) }
 end
 
 execute "#{jenkins_exe} install" do
@@ -67,7 +68,7 @@ jenkins_node node['jenkins']['node']['name'] do
   availability node['jenkins']['node']['availability']
 end
 
-remote_file "#{home_dir}\\slave.jar" do
+remote_file "#{home}\\slave.jar" do
   source "#{server_url}/jnlpJars/slave.jar"
   notifies :restart, "service[#{service_name}]", :immediately
 end
